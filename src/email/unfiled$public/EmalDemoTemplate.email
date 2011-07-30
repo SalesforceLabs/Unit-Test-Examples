@@ -1,6 +1,0 @@
-Dear {!recipient.FirstName},
-
-Case {!relatedTo.Subject} has been updated.
-
-------
-{!relatedTo.Description}
