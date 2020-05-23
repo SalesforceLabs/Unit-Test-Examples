@@ -26,64 +26,61 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISE
 OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
-global class OwnerReassignment implements 
-             Database.Batchable<SObject>, Database.Stateful{
-    
-    User fromUser{get; set;}
-    User toUser{get; set;}
- 
-    global OwnerReassignment(User fromUser, User toUser){
+global class OwnerReassignment implements Database.Batchable<SObject>, Database.Stateful {
+    User fromUser { get; set; }
+    User toUser { get; set; }
+
+    global OwnerReassignment(User fromUser, User toUser) {
         this.fromUser = fromUser;
         this.toUser = toUser;
     }
-    
-    global Database.queryLocator 
-                    start(Database.BatchableContext ctx){
-        return Database.getQueryLocator([SELECT id, name, ownerId 
-                        FROM Account WHERE ownerId = :fromUser.id]);
+
+    global Database.queryLocator start(Database.BatchableContext ctx) {
+        return Database.getQueryLocator(
+            [SELECT id, name, ownerId FROM Account WHERE ownerId = :fromUser.id]
+        );
     }
-    
-    global void execute(Database.BatchableContext ctx, List<Account>
-                        accs){
-        
-        for(Account acc : accs){
+
+    global void execute(Database.BatchableContext ctx, List<Account> accs) {
+        for (Account acc : accs) {
             acc.ownerId = toUser.id;
         }
-        
-        update accs;
 
+        update accs;
     }
-    
-    
-    global void finish(Database.BatchableContext ctx){
-    
-        AsyncApexJob a = [SELECT id, ApexClassId, 
-                       JobItemsProcessed, TotalJobItems, 
-                       NumberOfErrors, CreatedBy.Email 
-                       FROM AsyncApexJob 
-                       WHERE id = :ctx.getJobId()];
-        
-        String emailMessage = 'Your batch job '
-             + 'AccountOwnerReassignment '
-             + 'has finished.  It executed ' 
-             + a.totalJobItems 
-             + ' batches.  Of which, ' + a.jobitemsprocessed 
-             + ' processed without any exceptions thrown and ' 
-             + a.numberOfErrors +
-             ' batches threw unhandled exceptions.';
-        
-        Messaging.SingleEmailMessage mail = 
-              new Messaging.SingleEmailMessage();
-        String[] toAddresses = new String[] {a.createdBy.email};
+
+    global void finish(Database.BatchableContext ctx) {
+        AsyncApexJob a = [
+            SELECT
+                id,
+                ApexClassId,
+                JobItemsProcessed,
+                TotalJobItems,
+                NumberOfErrors,
+                CreatedBy.Email
+            FROM AsyncApexJob
+            WHERE id = :ctx.getJobId()
+        ];
+
+        String emailMessage =
+            'Your batch job ' +
+            'AccountOwnerReassignment ' +
+            'has finished.  It executed ' +
+            a.totalJobItems +
+            ' batches.  Of which, ' +
+            a.jobitemsprocessed +
+            ' processed without any exceptions thrown and ' +
+            a.numberOfErrors +
+            ' batches threw unhandled exceptions.';
+
+        Messaging.SingleEmailMessage mail = new Messaging.SingleEmailMessage();
+        String[] toAddresses = new List<String>{ a.createdBy.email };
         mail.setToAddresses(toAddresses);
         mail.setReplyTo('noreply@salesforce.com');
         mail.setSenderDisplayName('Batch Job Summary');
         mail.setSubject('Batch job completed');
         mail.setPlainTextBody(emailMessage);
         mail.setHtmlBody(emailMessage);
-        Messaging.sendEmail(new Messaging.SingleEmailMessage[] 
-                           { mail });
+        Messaging.sendEmail(new List<Messaging.SingleEmailMessage>{ mail });
     }
-
-   
 }

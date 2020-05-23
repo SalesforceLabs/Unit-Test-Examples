@@ -1,10 +1,3 @@
-Unit Test Examples
--------------------------------------------
-This project contains various examples for testing
-force.com functionality, including inbound email services,
-web service, and batch apex.
-
-
 /*
 Copyright (c) 2011, salesforce.com, Inc.
 All rights reserved.
@@ -33,3 +26,43 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISE
 OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
+@isTest
+private class InboundEmailDemoTest {
+    @isTest
+    static void testTasks() {
+        // Create a new email and envelope object
+        Messaging.InboundEmail email = new Messaging.InboundEmail();
+        Messaging.InboundEnvelope env = new Messaging.InboundEnvelope();
+
+        // Create the plainTextBody and fromAddress for the test
+        email.plainTextBody = 'Here is my plainText body of the email';
+        email.fromAddress = 'janedoe@testdoeorg.com';
+
+        InboundEmailDemo demoObj = new InboundEmailDemo();
+        demoObj.handleInboundEmail(email, env);
+
+        // set up Account and Contact to test that a
+        // task gets created
+        Account acc = new Account();
+        acc.BillingCountry = 'US';
+        acc.ShippingCountry = 'US';
+        acc.BillingState = 'IL';
+        acc.Name = 'Test Acc';
+        insert acc;
+
+        Contact con = new Contact();
+        con.FirstName = 'Jane';
+        con.LastName = 'Doe';
+        con.Email = 'janedoe@testdoeorg.com';
+        con.AccountId = acc.Id;
+        insert con;
+
+        //now try again
+        demoObj = new InboundEmailDemo();
+        demoObj.handleInboundEmail(email, env);
+
+        //make sure task was inserted
+        List<Task> demoTasks = [SELECT Id FROM Task WHERE WhoId = :con.Id];
+        System.assertEquals(1, demoTasks.size());
+    }
+}

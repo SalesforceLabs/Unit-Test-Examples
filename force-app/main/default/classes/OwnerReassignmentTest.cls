@@ -28,55 +28,58 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 @isTest
 private class OwnerReassignmentTest {
+    @isTest
+    static void testBatchAccountOwnerReassignment() {
+        // Access the standard user profile&nbsp;
 
- public static testmethod void testBatchAccountOwnerReassignment(){
-     // Access the standard user profile&nbsp; 
-    
-        Profile p = [SELECT Id FROM profile 
-                     WHERE name='Standard User']; 
+        Profile p = [SELECT Id FROM profile WHERE name = 'Standard User'];
 
-    // Create the two users for the test 
-    
-        User fromUser = new User(alias = 'newUser1', 
-            email='newuserA@testorg.com', 
-            emailencodingkey='UTF-8', lastname='Testing', 
-            languagelocalekey='en_US', 
-            localesidkey='en_US', profileid = p.Id, 
-            timezonesidkey='America/Los_Angeles', 
-            username='newuserA@testorg.com');
-            
-        User toUser = new User(alias = 'newUser2', 
-            email='newuserB@testorg.com', 
-            emailencodingkey='UTF-8', lastname='Testing', 
-            languagelocalekey='en_US', 
-            localesidkey='en_US', profileid = p.Id, 
-            timezonesidkey='America/Los_Angeles', 
-            username='newuserB@testorg.com');
-            
+        // Create the two users for the test
+
+        User fromUser = new User(
+            alias = 'newUser1',
+            email = 'newuserA@testorg.com',
+            emailencodingkey = 'UTF-8',
+            lastname = 'Testing',
+            languagelocalekey = 'en_US',
+            localesidkey = 'en_US',
+            profileid = p.Id,
+            timezonesidkey = 'America/Los_Angeles',
+            username = 'newuserA@testorg.com'
+        );
+
+        User toUser = new User(
+            alias = 'newUser2',
+            email = 'newuserB@testorg.com',
+            emailencodingkey = 'UTF-8',
+            lastname = 'Testing',
+            languagelocalekey = 'en_US',
+            localesidkey = 'en_US',
+            profileid = p.Id,
+            timezonesidkey = 'America/Los_Angeles',
+            username = 'newuserB@testorg.com'
+        );
+
         insert fromUser;
         insert toUser;
-        
-        // Use the new users to create a new account&nbsp; 
-    
+
+        // Use the new users to create a new account&nbsp;
+
         List<Account> accs = new List<Account>();
-        for(integer i = 0; i < 200; i++){
-            accs.add(new Account(name = 'test', 
-                     ownerId = fromUser.id));
+        for (integer i = 0; i < 200; i++) {
+            accs.add(new Account(name = 'test', ownerId = fromUser.id));
         }
         insert accs;
 
-        // Actually start the test 
-    
+        // Actually start the test
+
         Test.startTest();
-        Database.executeBatch(new 
-                 OwnerReassignment(fromUser, 
-                              toUser));
+        Database.executeBatch(new OwnerReassignment(fromUser, toUser));
         Test.stopTest();
 
-        // Verify the test worked  
-    
-        accs = [SELECT id, name FROM account 
-                WHERE ownerId = :toUser.id];
+        // Verify the test worked
+
+        accs = [SELECT id, name FROM account WHERE ownerId = :toUser.id];
         System.assert(accs.size() == 200);
     }
 }
