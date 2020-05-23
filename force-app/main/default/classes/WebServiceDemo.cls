@@ -26,47 +26,53 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISE
 OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
-@isTest
-private class InboundEmailDemoTest {
+public with sharing class WebServiceDemo {
+    public String firstItem = '';
 
-	static testMethod void testTasks() {
+    public WebServiceDemo() {
+    }
 
-	// Create a new email and envelope object
-	   Messaging.InboundEmail email = new Messaging.InboundEmail();
-	   Messaging.InboundEnvelope env = new Messaging.InboundEnvelope();
+    public HttpRequest buildWebServiceRequest() {
+        //Build HTTP Request object
+        HttpRequest req = new HttpRequest();
+        req.setEndpoint('http://samplewebservices.replaceme');
+        req.setMethod('GET');
+        return req;
+    }
 
-	// Create the plainTextBody and fromAddress for the test
-		email.plainTextBody = 'Here is my plainText body of the email';
-		email.fromAddress ='janedoe@testdoeorg.com';
-	
-	
+    public HttpResponse invokeWebService(Http h, HttpRequest req) {
+        //Invoke Web Service
+        HttpResponse res = h.send(req);
+        return res;
+    }
 
-		InboundEmailDemo demoObj = new InboundEmailDemo();
-		demoObj.handleInboundEmail(email, env);
-	
-		// set up Account and Contact to test that a
-		// task gets created
-        Account acc = new Account();
-        acc.BillingCountry = 'US';
-        acc.ShippingCountry = 'US';
-        acc.BillingState = 'IL';        
-        acc.Name = 'Test Acc';
-        insert acc;
-	
-		Contact con = new Contact();
-		con.FirstName = 'Jane';
-		con.LastName = 'Doe';
-		con.Email = 'janedoe@testdoeorg.com';
-		con.AccountId = acc.Id;
-		insert con;
-		
-		//now try again
-		demoObj = new InboundEmailDemo();
-		demoObj.handleInboundEmail(email, env);
-		
-		//make sure task was inserted
-		List<Task> demoTasks = [Select Id From Task Where WhoId=:con.Id];
-		System.assertEquals(1,demoTasks.size());
-	
-	} 
+    public void handleWebServiceResponse(HttpResponse res) {
+        //Parse and apply logic to the res message
+        XmlStreamReader reader = res.getXmlStreamReader();
+
+        // Read through the XML
+        // just taking the first item in the XML as test data
+        while (reader.hasNext()) {
+            if (reader.getEventType() == XmlTag.START_ELEMENT) {
+                firstItem = (reader.getLocalName());
+                return;
+            }
+            reader.next();
+        }
+    }
+
+    public void main() {
+        //apply business logic
+        //now need to make web service callout
+
+        //First, build the http request
+        Http h = new Http();
+        HttpRequest req = buildWebServiceRequest();
+
+        //Second, invoke web service call
+        HttpResponse res = invokeWebService(h, req);
+
+        //Last, handling the response
+        handleWebServiceResponse(res);
+    }
 }
